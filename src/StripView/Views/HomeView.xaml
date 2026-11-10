@@ -4,7 +4,7 @@
              xmlns:c="clr-namespace:StripView.Controls">
   <Grid Margin="28,22,28,20">
     <Grid.ColumnDefinitions>
-      <ColumnDefinition Width="280" />
+      <ColumnDefinition Width="300" />
       <ColumnDefinition Width="24" />
       <ColumnDefinition Width="320" />
       <ColumnDefinition Width="24" />
@@ -12,7 +12,7 @@
     </Grid.ColumnDefinitions>
 
     <!-- Left: active scene, send modes, quick scenes -->
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,14,0">
       <StackPanel>
         <TextBlock Text="ACTIVE SCENE" Style="{StaticResource Caps}" />
         <TextBlock x:Name="SceneTitle" Text="Aurora Dashboard" FontSize="36" FontWeight="Bold" TextWrapping="Wrap"
@@ -75,7 +75,7 @@
     </Border>
 
     <!-- Right: live telemetry desk -->
-    <ScrollViewer Grid.Column="4" VerticalScrollBarVisibility="Auto">
+    <ScrollViewer Grid.Column="4" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,14,0">
       <StackPanel>
         <Grid Margin="0,0,0,12">
           <TextBlock Text="Live telemetry" FontSize="18" FontWeight="SemiBold" />
@@ -98,7 +98,7 @@
                 </Grid>
                 <StackPanel Margin="140,0,0,0" VerticalAlignment="Center">
                   <TextBlock x:Name="CpuTemp" Text="—" FontSize="24" FontWeight="Bold" />
-                  <TextBlock Text="CPU TEMP / C · SAMPLE" Style="{StaticResource Caps}" Margin="0,2,0,6" />
+                  <TextBlock Text="CPU TEMP / C" Style="{StaticResource Caps}" Margin="0,2,0,6" />
                   <TextBlock x:Name="CpuTrend" FontSize="11" Foreground="{StaticResource Lime}" />
                 </StackPanel>
               </Grid>
@@ -115,7 +115,7 @@
                 <StackPanel Margin="140,0,0,0" VerticalAlignment="Center">
                   <TextBlock x:Name="GpuTemp" Text="—" FontSize="24" FontWeight="Bold" />
                   <TextBlock Text="GPU TEMP / C" Style="{StaticResource Caps}" Margin="0,2,0,6" />
-                  <TextBlock Text="Sample data" FontSize="11" Foreground="{StaticResource Orange}" />
+                  <TextBlock x:Name="GpuSourceLabel" Text="Live sensor" FontSize="11" Foreground="{StaticResource Orange}" />
                 </StackPanel>
               </Grid>
             </StackPanel>

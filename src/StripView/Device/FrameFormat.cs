@@ -1,7 +1,7 @@
 namespace StripView.Device;
 
 /// <summary>
-/// Panel wire format, carried over from the earlier offline app as constants and pure builders.
+/// Panel wire format: constants and pure frame builders.
 /// Everything here works on byte arrays in memory; SerialPanelClient does the I/O.
 /// Layout: [cmd][0xEF][0x69][u32 big-endian value][trailer][payload], padded to 250-byte buffers.
 /// </summary>
@@ -40,12 +40,11 @@ public static class FrameFormat
         return buf;
     }
 
-    /// <summary>Same value as the earlier app's FullFrameValue11Pages: 440*1920*4.</summary>
+    /// <summary>Full-frame payload size: 440*1920*4.</summary>
     public const uint FullFrameValue11Pages = FullFrameBytes;
 
     /// <summary>
     /// Full C8 wire stream: padded 250-byte header, then 250-byte buffers of 249 BGRA bytes + 1 zero pad.
-    /// Copied from the earlier app's BuildFullFrame.
     /// </summary>
     public static byte[] BuildFullFrame(ReadOnlySpan<byte> bgra440x1920)
     {

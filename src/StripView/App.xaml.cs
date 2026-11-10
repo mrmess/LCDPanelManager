@@ -16,10 +16,11 @@ public partial class App : Application
         {
             var path = i + 1 < e.Args.Length ? e.Args[i + 1] : "strip-frame.png";
             var telemetry = new TelemetrySource();
-            telemetry.Sample();
+            _ = Task.Run(() => telemetry.Sample()).GetAwaiter().GetResult();
             Thread.Sleep(600);
-            telemetry.Sample();
-            StripRenderer.SavePng(StripRenderer.Render(StripLayout.LoadOrDefault(), telemetry), Path.GetFullPath(path));
+            var snapshot = Task.Run(() => telemetry.Sample()).GetAwaiter().GetResult();
+            StripRenderer.SavePng(StripRenderer.Render(StripLayout.LoadOrDefault(), snapshot), Path.GetFullPath(path));
+            telemetry.Dispose();
             Shutdown(0);
             return;
         }

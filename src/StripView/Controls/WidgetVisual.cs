@@ -12,7 +12,7 @@ public sealed class WidgetVisual : Grid
 {
     private readonly SceneTheme _theme;
     private readonly Border _outline;
-    private Action<TelemetrySource>? _update;
+    private Action<TelemetrySnapshot>? _update;
 
     public WidgetItem Item { get; }
     public Button DeleteButton { get; }
@@ -61,7 +61,7 @@ public sealed class WidgetVisual : Grid
         }
     }
 
-    public void Update(TelemetrySource t) => _update?.Invoke(t);
+    public void Update(TelemetrySnapshot t) => _update?.Invoke(t);
 
     public void Rebuild()
     {
@@ -106,9 +106,9 @@ public sealed class WidgetVisual : Grid
         _update = null;
         return Item.Kind switch
         {
-            WidgetKind.Cpu => Ring("CPU", _theme.Accent1, t => (t.CpuPercent, $"{t.CpuTempC:0}°C temp")),
-            WidgetKind.Gpu => Ring("GPU", _theme.Accent2, t => (t.GpuPercent, $"{t.GpuTempC:0}°C temp")),
-            WidgetKind.GpuTemp => BigNumber("GPU TEMP", t => $"{t.GpuTempC:0}°"),
+            WidgetKind.Cpu => Ring("CPU", _theme.Accent1, t => (t.CpuPercent, TelemetrySource.FormatTemperature(t.CpuTempC) + " temp")),
+            WidgetKind.Gpu => Ring("GPU", _theme.Accent2, t => (t.GpuPercent, TelemetrySource.FormatTemperature(t.GpuTempC) + " temp")),
+            WidgetKind.GpuTemp => BigNumber("GPU TEMP", t => TelemetrySource.FormatTemperature(t.GpuTempC)),
             WidgetKind.Memory => BarRow("MEMORY", _theme.Accent1, t => (t.MemPercent, $"{t.MemPercent:0}%", $"{t.MemUsedGb:0.0} / {t.MemTotalGb:0} GB")),
             WidgetKind.Drive => BarRow(Item.Text.Length > 0 ? Item.Text.ToUpperInvariant() : "C:", _theme.Accent3, t =>
             {
@@ -123,7 +123,7 @@ public sealed class WidgetVisual : Grid
         };
     }
 
-    private FrameworkElement Ring(string label, Brush accent, Func<TelemetrySource, (double Value, string Sub)> read)
+    private FrameworkElement Ring(string label, Brush accent, Func<TelemetrySnapshot, (double? Value, string Sub)> read)
     {
         var size = Math.Min(Item.Width, Item.Height) - 70;
         var ring = new RingGauge { Width = size, Height = size, Thickness = Math.Max(14, size / 11), ArcBrush = accent, TrackBrush = _theme.Track };
@@ -139,14 +139,15 @@ public sealed class WidgetVisual : Grid
         _update = t =>
         {
             var (v, s) = read(t);
-            ring.Value = v;
-            value.Text = $"{v:0}%";
+            ring.Value = v ?? 0;
+            ring.Opacity = v.HasValue ? 1 : 0.35;
+            value.Text = v.HasValue ? $"{v:0}%" : "n/a";
             sub.Text = s;
         };
         return Card(g, 10);
     }
 
-    private FrameworkElement BigNumber(string label, Func<TelemetrySource, string> read)
+    private FrameworkElement BigNumber(string label, Func<TelemetrySnapshot, string> read)
     {
         var value = Tb("—", Math.Min(140, Item.Height * 0.55), weight: FontWeights.SemiBold, align: HorizontalAlignment.Center);
         var s = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
@@ -156,7 +157,7 @@ public sealed class WidgetVisual : Grid
         return Card(s);
     }
 
-    private FrameworkElement BarRow(string label, Brush accent, Func<TelemetrySource, (double Pct, string Value, string Sub)> read)
+    private FrameworkElement BarRow(string label, Brush accent, Func<TelemetrySnapshot, (double Pct, string Value, string Sub)> read)
     {
         var head = new DockPanel();
         var value = Tb("—", 30, weight: FontWeights.SemiBold);

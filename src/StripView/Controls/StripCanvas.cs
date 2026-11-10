@@ -28,7 +28,7 @@ public sealed class StripCanvas : Border
     private readonly Dictionary<WidgetItem, WidgetVisual> _visuals = new();
 
     private StripLayout? _layout;
-    private TelemetrySource? _telemetry;
+    private TelemetrySnapshot? _telemetry;
     private SceneTheme _theme = SceneTheme.All[0];
     private WidgetItem? _dragItem;
     private Vector _dragOffset;
@@ -85,7 +85,7 @@ public sealed class StripCanvas : Border
         };
     }
 
-    public void Attach(StripLayout layout, TelemetrySource telemetry)
+    public void Attach(StripLayout layout, TelemetrySnapshot telemetry)
     {
         _layout = layout;
         _telemetry = telemetry;
@@ -103,10 +103,10 @@ public sealed class StripCanvas : Border
         _layout = null;
     }
 
-    public void RefreshValues()
+    public void RefreshValues(TelemetrySnapshot telemetry)
     {
-        if (_telemetry is null) return;
-        foreach (var v in _visuals.Values) v.Update(_telemetry);
+        _telemetry = telemetry;
+        foreach (var v in _visuals.Values) v.Update(telemetry);
     }
 
     public void Select(WidgetItem? item)

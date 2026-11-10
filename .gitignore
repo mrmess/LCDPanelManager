@@ -1,5 +1,6 @@
 bin/
 obj/
+publish/
 *.user
 .vs/
-
+src/StripView/assets/stripview-icon-oct30.ico

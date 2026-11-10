@@ -69,23 +69,31 @@ public sealed class SceneTheme
         return canvas;
     }
 
+    private static FrameworkElement AuroraBackdrop()
+    {
+        var image = new System.Windows.Media.Imaging.BitmapImage(
+            new Uri("pack://application:,,,/assets/abstract-aurora.png", UriKind.Absolute));
+        image.Freeze();
+        return Layered(Brushes.Black, new Image
+        {
+            Width = StripLayout.StripWidth,
+            Height = StripLayout.StripHeight,
+            Source = image,
+            Stretch = Stretch.UniformToFill,
+            IsHitTestVisible = false,
+        });
+    }
+
     public static readonly IReadOnlyList<SceneTheme> All = new[]
     {
         new SceneTheme
         {
             Id = "aurora", Name = "Aurora", Title = "Aurora Dashboard", Kind = "Dashboard",
             Blurb = "A little atmosphere. All the numbers that matter. Your hardware, rendered live on the case display.",
-            Text = B("#F4F2FF"), TextDim = B("#B8B0E0"), Card = B("#33100A30"), Track = B("#3A2E5C"),
+            Text = B("#F4F2FF"), TextDim = B("#E4E8F2"), Card = B("#A0050B1D"), Track = B("#40FFFFFF"),
             Accent1 = B("#5CE1FF"), Accent2 = B("#E58CFF"), Accent3 = B("#B9A2FF"),
             Swatch = G("#2B1066", "#6B2FD0", "#18B6E8"),
-            Backdrop = () => Layered(G("#170A3A", "#2C1170", "#12215E", "#0B3C6E"),
-                Glow("#A03BFF", -160, 120, 620, 620), Glow("#18C8FF", 60, 760, 560, 560),
-                Glow("#FF4FD8", -120, 1320, 600, 600),
-                Swirl("M -40,220 C 160,40 300,520 480,300", "#99FF5FE0", 5),
-                Swirl("M -40,560 C 120,380 360,860 480,600", "#885CE1FF", 4),
-                Swirl("M -40,980 C 200,780 260,1240 480,1020", "#80B98CFF", 6),
-                Swirl("M -40,1420 C 140,1260 340,1700 480,1460", "#8818D8FF", 5),
-                Swirl("M -40,1780 C 180,1620 280,2000 480,1800", "#88FF5FE0", 4)),
+            Backdrop = AuroraBackdrop,
         },
         new SceneTheme
         {

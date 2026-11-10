@@ -15,7 +15,10 @@ public sealed class AppState : IDisposable
     private DateTime _lastLivePush = DateTime.MinValue;
     private DateTime _autoPushNotBefore = DateTime.MinValue;
 
-    public TelemetrySource Telemetry { get; } = new();
+    private readonly TelemetrySource _telemetrySource = new();
+    private bool _telemetryBusy;
+    private string? _telemetryError;
+    public TelemetrySnapshot Telemetry { get; private set; } = TelemetrySnapshot.Empty;
     public StripLayout Layout { get; } = StripLayout.LoadOrDefault();
     public PanelLink Link { get; } = new();
     public IReadOnlyList<PortInfo> Ports { get; private set; } = Array.Empty<PortInfo>();
@@ -51,19 +54,18 @@ public sealed class AppState : IDisposable
 
     public void Start()
     {
-        Telemetry.Sample();
         Rescan();
         _timer.Start();
         Render();
+        _ = RefreshTelemetryAsync(render: true);
         SetStatus(Target is null
             ? $"{DeviceIdentity.StripName} not detected. Preview only."
             : $"{DeviceIdentity.StripName} found on {Target.PortName}. Click Connect to send to the panel.");
     }
 
-    private void Tick()
+    private async void Tick()
     {
-        Telemetry.Sample();
-        TelemetryTick?.Invoke();
+        await RefreshTelemetryAsync();
         var before = Link.State;
         Link.Sync();
         if (Link.State != before && Link.LastError is not null && Link.State == LinkState.Disconnected)
@@ -74,7 +76,6 @@ public sealed class AppState : IDisposable
         _seconds++;
         if (!StreamPaused && _seconds % CadenceSeconds == 0) Render();
 
-        // Live sending: same gate as the earlier app's poll timer.
         var now = DateTime.UtcNow;
         if (!StreamPaused && Link.CanPush && now >= _autoPushNotBefore &&
             now - _lastLivePush >= TimeSpan.FromSeconds(CadenceSeconds))
@@ -83,6 +84,31 @@ public sealed class AppState : IDisposable
             _ = SendFrameAsync(live: true);
         }
         StateChanged?.Invoke();
+    }
+
+    private async Task RefreshTelemetryAsync(bool render = false)
+    {
+        if (_telemetryBusy) return;
+        _telemetryBusy = true;
+        try
+        {
+            Telemetry = await Task.Run(() => _telemetrySource.Sample());
+            _telemetryError = null;
+            TelemetryTick?.Invoke();
+            if (render) Render();
+        }
+        catch (Exception ex)
+        {
+            if (_telemetryError != ex.Message)
+            {
+                _telemetryError = ex.Message;
+                Log("Telemetry sample failed: " + ex.Message);
+            }
+        }
+        finally
+        {
+            _telemetryBusy = false;
+        }
     }
 
     private void Render()
@@ -229,6 +255,7 @@ public sealed class AppState : IDisposable
     public void Dispose()
     {
         _timer.Stop();
+        _telemetrySource.Dispose();
         Link.Dispose();
     }
 }

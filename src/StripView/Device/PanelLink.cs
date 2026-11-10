@@ -15,10 +15,10 @@ public enum LinkState
 
 /// <summary>
 /// StripView's session around <see cref="SerialPanelClient"/>. The Connect, Push and Disconnect
-/// sequences mirror the working kimi\OfflinePanel MainWindow (Connect_Click, PushStill_Click,
-/// Disconnect_Click, SyncConnectionStatus) step for step. The identity lock is checked again
+/// sequences follow Connect, then an optional still or live push, then Disconnect.
+/// The identity lock is checked again
 /// right before the port is opened; a refused or unknown port is never opened.
-/// All methods are called from the UI thread; serial work runs on Task.Run like the earlier app.
+/// All methods are called from the UI thread; serial work runs on Task.Run.
 /// </summary>
 public sealed class PanelLink : IDisposable
 {

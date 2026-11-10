@@ -6,8 +6,8 @@ using System.Threading;
 namespace StripView.Device;
 
 /// <summary>
-/// Panel serial client, ported unchanged in behaviour from the working kimi\OfflinePanel app.
-/// Owns COM via RJCP SerialPortStream 2.4.0. Protocol bytes come from earlier captures.
+/// Panel serial client. Owns the COM port through RJCP SerialPortStream 2.4.0.
+/// Frame layout and opcodes are those used by this USB case LCD.
 ///
 /// TX model (hard-won, do not regress):
 ///  - One RJCP handle per session; never Close+Open mid-push.
@@ -22,8 +22,8 @@ namespace StripView.Device;
 /// </summary>
 public sealed class SerialPanelClient : IDisposable
 {
-    // C8#1 first WriteFile was 250 bytes (8-byte EF69 header + 242 payload bytes);
-    // remaining bulk behaves like ~128 KB app writes (capture pair-sums ~131072).
+    // C8#1 first write is 250 bytes (8-byte EF69 header + 242 payload bytes);
+    // remaining bulk is sent in 128 KB chunks.
     public const int FirstBulkWriteChunkBytes = 250;
     public const int DefaultWriteChunkBytes = 128 * 1024;
 
@@ -35,7 +35,7 @@ public sealed class SerialPanelClient : IDisposable
 
     /// <summary>
     /// Probe failed without a Device Error (bytes never drained). That means the panel MCU
-    /// is hung; host-side resets do not recover it (PUSH-DEBUG.md). Only a VBUS drop does.
+    /// is hung; host-side resets do not recover it. Only a VBUS drop does.
     /// </summary>
     public const string PanelNotRespondingMessage =
         "Port open but panel not responding (TX probe failed). Power-cycle the case LCD or reboot the PC so the panel resets, then Connect again. Do not Push while amber.";
@@ -44,7 +44,7 @@ public sealed class SerialPanelClient : IDisposable
     {
         var pathBytes = System.Text.Encoding.ASCII.GetBytes(path);
         var payload = new byte[2 + pathBytes.Length];
-        // Capture: after the trailer, two zero bytes then the ASCII path (same pad shape as 0x7B/0x7D).
+        // After the trailer, two zero bytes then the ASCII path (same pad shape as 0x7B/0x7D).
         payload[0] = 0x00;
         payload[1] = 0x00;
         Buffer.BlockCopy(pathBytes, 0, payload, 2, pathBytes.Length);
@@ -143,7 +143,7 @@ public sealed class SerialPanelClient : IDisposable
         {
             port.Dispose();
             throw new IOException(
-                $"Port {portName} is busy (another app has it open). Close any other app using the case LCD (for example the older OfflinePanel window), then Connect again.",
+                $"Port {portName} is busy (another app has it open). Close any other app using the case LCD, then Connect again.",
                 ex);
         }
         catch (IOException ex) when (IsSemaphoreTimeout(ex))
@@ -449,9 +449,8 @@ public sealed class SerialPanelClient : IDisposable
 
         try
         {
-            // RJCP Write only, no Flush (Flush/WaitForEmpty DeviceError'd ~500 ms on this
-            // adapter when the URB never completed). capture gaps are WriteFile spacing
-            // artifacts; on a healthy panel the drain is ~18 MB/s and gaps disappear.
+            // RJCP Write only, no Flush (Flush/WaitForEmpty can Device Error after ~500 ms
+            // when the URB never completed). On a healthy panel the drain is about 18 MB/s.
             port.Write(buf, offset, count);
             sw.Stop();
             int btwAfter = -1;
@@ -669,14 +668,14 @@ public sealed class SerialPanelClient : IDisposable
     /// <summary>
     /// EXPERIMENTAL still push. One CDC handle for prelude + C8 (no mid-push reopen).
     /// Pre-builds the stock-sized C8 stream before any TX so there is no alloc gap after prelude.
-    /// Protocol bytes per OPCODE-MAP.md / SS-TX-DIFF-2026-11-06.md (capture captures).
+    /// Prelude and C8 stream follow the panel's documented frame order.
     /// </summary>
     public void PushStillExperimental(
         byte[] bgraPixels,
         byte brightnessByte,
         bool sendPrelude = true,
-        bool includeVideoPath = false,   // false = still prelude (2026-10-30 still capture); true adds 64/6E/6E/78 video path frames
-        string videoPath = "/mnt/UDISK/video/8.8s.mp4", // stored theme to play when includeVideoPath=true
+        bool includeVideoPath = false,   // false = still-image prelude; true adds 64/6E/6E/78 on-device path frames
+        string videoPath = "/mnt/UDISK/video/8.8s.mp4", // on-device theme path, used only when includeVideoPath is true
         bool onePage = true,             // retained for call-site compat; stock bank is always 11 pages
         bool skipHealthCheck = false,    // ignored - Connect's probe is the health gate
         int expectedHandleEpoch = -1,    // ignored - never gate on handle identity
@@ -768,18 +767,14 @@ public sealed class SerialPanelClient : IDisposable
 
             if (sendPrelude)
             {
-                // Stock theme C8#1 (2026-11-06 capture), order:
-                // 01 79 96 7B 7D 64 6E 6E 78 86 2C 7B -> C8. Frames are written back-to-back;
-                // stock inter-frame delays in the capture are app/UI timing, not protocol.
+                // Still-image prelude, written back-to-back:
+                // 01 79 96 7B 7D [64 6E 6E 78 if a video path is included] 86 2C 7B, then C8.
+                // 0x87 is the disconnect/flush frame and is not sent here; sending it would
+                // end the session. A single 0x01 starts the still prelude.
                 phase = "prelude";
                 SetWritePhase("prelude");
-                TraceWrite("PUSH-START prelude begin stock-still-20261030");
-                status?.Invoke("Experimental: prelude (stock still: 87 01 01 79 96 7B 7D 86 2C 7B)...");
-                // Exact 2026-10-30 still-theme sequence (2026-10-30 capture):
-                // 0x87 flush/end previous content, 0x01 x2, then 79 96 7B 7D 86 2C 7B.
-                // Without 0x87 the panel keeps playing the stored theme and ignores our pixels.
-                // Connect-time push (star.mp4 still capture 2026-11-09): 01 79 96 7B 7D
-                // [64 6E 6E 78 if path] 86 2C 7B. No 0x87, single 0x01 - 0x87 is the DISCONNECT frame.
+                TraceWrite("PUSH-START prelude begin still");
+                status?.Invoke("Experimental: prelude (still: 01 79 96 7B 7D 86 2C 7B)...");
                 WritePreludeFrameOnPort(port, 0x01, 1, 0, new byte[] { 0x00, 0x00, 0xC5, 0xD3 }, cancellationToken);
                 WritePreludeFrameOnPort(port, 0x79, 1, 0, default, cancellationToken);
                 WritePreludeFrameOnPort(port, 0x96, 1, 0, default, cancellationToken);
@@ -787,9 +782,9 @@ public sealed class SerialPanelClient : IDisposable
                 WritePreludeFrameOnPort(port, 0x7D, 5, 0, new byte[] { 0x00, 0x00, brightnessByte, 0x02 }, cancellationToken);
                 if (includeVideoPath)
                 {
-                    // Video themes only (2026-11-06 capture): path triad tells the panel to play
-                    // stored content from /mnt/UDISK. Do NOT send for a plain still-image push -
-                    // it makes the panel show a stored theme instead of our pixels.
+                    // Path triad: tells the panel to play stored content from its on-device path.
+                    // Do not send this for a plain still-image push, or the panel shows the
+                    // stored theme instead of our pixels.
                     WritePreludeFrameOnPort(port, 0x64, 1, 0, default, cancellationToken);
                     var pathPayload = BuildVideoPathPayload(videoPath); // 00 00 + ASCII path
                     WritePreludeFrameOnPort(port, 0x6E, (uint)videoPath.Length, 0, pathPayload, cancellationToken);

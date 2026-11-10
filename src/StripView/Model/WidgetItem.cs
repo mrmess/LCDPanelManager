@@ -40,7 +40,7 @@ public sealed class WidgetItem : INotifyPropertyChanged
         Height = WidgetCatalog.Get(kind).DefaultHeight,
         Text = text.Length > 0 ? text : kind switch
         {
-            WidgetKind.Text => "StripView",
+            WidgetKind.Text => "Text",
             WidgetKind.Drive => "C:",
             _ => "",
         },

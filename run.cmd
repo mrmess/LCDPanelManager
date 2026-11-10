@@ -1,4 +1,3 @@
 @echo off
-rem StripView: the .NET runtime on this PC lives in D:\Tools\dotnet.
-set DOTNET_ROOT=D:\Tools\dotnet
-start "" "%~dp0src\StripView\bin\Debug\net8.0-windows\StripView.exe"
+rem Self-contained win-x64 build: no installed .NET Desktop Runtime is required.
+start "" "%~dp0publish\win-x64\StripView.exe"

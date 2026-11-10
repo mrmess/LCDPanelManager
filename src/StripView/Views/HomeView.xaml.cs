@@ -34,7 +34,7 @@ public partial class HomeView : UserControl
         ViewAllButton.Click += (_, _) => RequestDesign?.Invoke();
 
         state.TelemetryTick += RefreshDesk;
-        state.StreamTick += Strip.RefreshValues;
+        state.StreamTick += () => Strip.RefreshValues(state.Telemetry);
         state.StateChanged += RefreshControls;
         state.Layout.PropertyChanged += (_, _) => RefreshScene();
         state.Layout.Widgets.CollectionChanged += (_, _) => RefreshScene();
@@ -109,16 +109,18 @@ public partial class HomeView : UserControl
     private void RefreshDesk()
     {
         var t = _state.Telemetry;
-        SensorCount.Text = $"SENSORS {t.LiveSensorCount} LIVE · {t.SampleSensorCount} SAMPLE";
+        SensorCount.Text = $"SENSORS {t.LiveSensorCount} LIVE";
 
         CpuRing.Value = t.CpuPercent;
         CpuValue.Text = $"{t.CpuPercent:0}%";
-        CpuTemp.Text = $"{t.CpuTempC:0}°";
+        CpuTemp.Text = t.CpuTempC is double cpuTemp ? $"{cpuTemp:0}°" : "n/a";
         CpuTrend.Text = $"{(t.CpuTrend >= 0 ? "↗" : "↘")} {Math.Abs(t.CpuTrend):0}% this minute";
 
-        GpuRing.Value = t.GpuPercent;
-        GpuValue.Text = $"{t.GpuPercent:0}%";
-        GpuTemp.Text = $"{t.GpuTempC:0}°";
+        GpuRing.Value = t.GpuPercent ?? 0;
+        GpuRing.Opacity = t.GpuPercent.HasValue ? 1 : 0.35;
+        GpuValue.Text = t.GpuPercent is double gpu ? $"{gpu:0}%" : "n/a";
+        GpuTemp.Text = t.GpuTempC is double gpuTemp ? $"{gpuTemp:0}°" : "n/a";
+        GpuSourceLabel.Visibility = t.GpuTempC.HasValue ? Visibility.Visible : Visibility.Collapsed;
 
         MemValue.Text = $"{t.MemPercent:0}%";
         MemDetail.Text = $"· {t.MemUsedGb:0.0} / {t.MemTotalGb:0} GB";

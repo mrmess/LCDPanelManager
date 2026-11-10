@@ -58,6 +58,8 @@ public partial class DesignView : UserControl
         RemoveButton.Click += (_, _) => Strip.RemoveSelected();
         ResetButton.Click += (_, _) =>
         {
+            if (MessageBox.Show("Replace the current layout with the Aurora default?", "Reset to default layout",
+                    MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
             Strip.Select(null);
             state.Layout.ResetToDefault();
             state.SaveLayout();
@@ -88,7 +90,7 @@ public partial class DesignView : UserControl
         CadenceButton.Click += (_, _) => state.CycleCadence();
 
         state.TelemetryTick += RefreshChips;
-        state.StreamTick += Strip.RefreshValues;
+        state.StreamTick += () => Strip.RefreshValues(state.Telemetry);
         state.StateChanged += RefreshDevice;
         SyncSelection();
         RefreshDevice();
@@ -154,8 +156,8 @@ public partial class DesignView : UserControl
             tb.Text = kind switch
             {
                 WidgetKind.Cpu => $"{t.CpuPercent:0}%",
-                WidgetKind.Gpu => $"{t.GpuPercent:0}%",
-                WidgetKind.GpuTemp => $"{t.GpuTempC:0}°C",
+                WidgetKind.Gpu => t.GpuPercent is double gpu ? $"{gpu:0}%" : "n/a",
+                WidgetKind.GpuTemp => TelemetrySource.FormatTemperature(t.GpuTempC),
                 WidgetKind.Memory => $"{t.MemPercent:0}%",
                 WidgetKind.Drive => c is null ? "—" : TelemetrySource.FormatGb(c.FreeGb),
                 WidgetKind.Network => $"{TelemetrySource.FormatMbps(t.DownMbps)} Mb/s",
