@@ -70,11 +70,19 @@ public partial class DesignView : UserControl
         };
 
         BrightnessSlider.Value = state.Brightness;
+        UpdateBrightnessLabel();
         BrightnessSlider.ValueChanged += (_, e) =>
         {
-            state.Brightness = e.NewValue;
-            BrightnessLabel.Text = e.NewValue switch { < 30 => "Dim", < 80 => "Standard", _ => "Bright" };
+            state.Brightness = (byte)Math.Round(e.NewValue);
+            UpdateBrightnessLabel();
         };
+        ApplyBrightnessButton.Click += (_, _) => state.ApplyBrightness();
+        ConnectButton.Click += async (_, _) =>
+        {
+            if (state.Link.SessionOpen) await state.DisconnectAsync();
+            else await state.ConnectAsync();
+        };
+        SendButton.Click += (_, _) => state.PushOnce();
         LiveToggle.Checked += (_, _) => { if (state.StreamPaused) state.TogglePause(); };
         LiveToggle.Unchecked += (_, _) => { if (!state.StreamPaused) state.TogglePause(); };
         CadenceButton.Click += (_, _) => state.CycleCadence();
@@ -261,16 +269,36 @@ public partial class DesignView : UserControl
         }
     }
 
+    private void UpdateBrightnessLabel()
+    {
+        var b = _state.Brightness;
+        var word = b == PanelLink.DefaultBrightness ? "Standard" : b < PanelLink.DefaultBrightness ? "Dimmer" : "Brighter";
+        BrightnessLabel.Text = $"{word} · 0x{b:X2}";
+    }
+
     // ---------- device card ----------
 
     private void RefreshDevice()
     {
         var t = _state.Target;
+        var link = _state.Link;
         DeviceLine.Text = t is null
             ? $"USB CDC · {DeviceIdentity.StripId.Replace("&", " & ")} · not detected"
             : $"USB CDC · VID_{t.Vid} & PID_{t.Pid} · {t.PortName}";
-        DeviceState.Text = t is null ? "Not detected" : "Detected · not connected";
-        var brush = (Brush)FindResource(t is null ? "Bad" : "Warn");
+        DeviceState.Text = link.PushBusy ? "Sending" : link.CanPush ? "Live" : link.SessionOpen ? "Connected · not ready"
+            : _state.Connecting ? "Connecting" : t is null ? "Not detected" : "Detected · not connected";
+        var brush = (Brush)FindResource(link.TxHealthy ? "Ok" : t is null || link.TxLockedOut ? "Bad" : "Warn");
+        ConnectButton.Content = link.SessionOpen ? "Disconnect" : _state.Connecting ? "Connecting…" : "Connect";
+        ConnectButton.IsEnabled = link.SessionOpen ? !link.PushBusy : _state.CanConnect;
+        ConnectButton.ToolTip = link.SessionOpen ? "Close the port." : PanelLink.RefusalFor(t) ?? "Open the case LCD and check it is ready.";
+        SendButton.IsEnabled = _state.CanSend;
+        ApplyBrightnessButton.IsEnabled = _state.CanSend;
+        if (link.LastSent is { } sent)
+        {
+            LastSentChip.Opacity = 1;
+            LastSentChip.ToolTip = $"Last frame sent at {sent:HH:mm:ss}";
+            LastSentText.Text = $"Last sent {sent:HH:mm:ss}";
+        }
         DeviceDot.Fill = brush;
         DeviceState.Foreground = brush;
         DevicePill.BorderBrush = (Brush)FindResource("LineStrong");

@@ -16,4 +16,11 @@
   <ItemGroup>
     <Resource Include="assets\stripview.ico" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Same RJCP.SerialPortStream 2.4.0 build the earlier offline app uses (copied from kimi\OfflinePanel). -->
+    <Reference Include="RJCP.SerialPortStream">
+      <HintPath>lib\RJCP.SerialPortStream.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
 </Project>

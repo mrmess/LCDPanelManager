@@ -24,7 +24,11 @@ public partial class MainWindow : Window
 
         _state.StateChanged += UpdateChrome;
         PreviewKeyDown += OnShortcut;
-        Closing += (_, _) => _state.SaveLayout();
+        Closing += (_, _) =>
+        {
+            _state.SaveLayout();
+            _state.Dispose();
+        };
         _state.Start();
         UpdateChrome();
     }
@@ -53,12 +57,15 @@ public partial class MainWindow : Window
     private void UpdateChrome()
     {
         var paused = _state.StreamPaused;
-        SyncText.Text = paused ? "PAUSED" : $"PREVIEW · {_state.CadenceSeconds}s";
+        var link = _state.Link;
+        var sending = link.CanPush || link.PushBusy;
+        SyncText.Text = paused ? "PAUSED" : sending ? $"SYNCED · {_state.CadenceSeconds}s" : $"PREVIEW · {_state.CadenceSeconds}s";
         SyncDot.Opacity = paused ? 0.35 : 1;
         var target = _state.Target;
-        var where = target is null ? $"{DeviceIdentity.StripName} not detected" : $"{DeviceIdentity.StripName} on {target.PortName}";
-        var last = _state.LastRendered is { } t ? $" · last rendered {t:HH:mm:ss}" : "";
-        StatusText.Text = $"{_state.Status}  ·  {where}{last}";
-        StatusDot.Fill = (Brush)FindResource(target is null ? "Bad" : "Warn");
+        var where = link.SessionOpen
+            ? $"{DeviceIdentity.StripName} connected on {link.PortName}"
+            : target is null ? $"{DeviceIdentity.StripName} not detected" : $"{DeviceIdentity.StripName} on {target.PortName}, not connected";
+        StatusText.Text = $"{_state.Status}  ·  {where}";
+        StatusDot.Fill = (Brush)FindResource(link.TxHealthy ? "Ok" : target is null || link.TxLockedOut ? "Bad" : "Warn");
     }
 }

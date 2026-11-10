@@ -29,7 +29,7 @@
           </Grid>
         </Button>
         <Button x:Name="PushButton" Style="{StaticResource OutlineButton}" Margin="0,8,0,0"
-                ToolTip="Renders one frame now. Sending to the panel is off in this build.">
+                ToolTip="Sends one full frame to the panel now.">
           <Grid>
             <TextBlock Text="↗   Push once" FontWeight="SemiBold" />
             <TextBlock Text="CTRL + P" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="9" FontWeight="Bold" Opacity="0.55" />
@@ -40,8 +40,12 @@
           <Button x:Name="CadenceButton" Style="{StaticResource LinkButton}" HorizontalAlignment="Right"
                   Content="Every 2 seconds" ToolTip="Click to cycle 2 / 3 / 5 seconds" />
         </Grid>
-        <TextBlock Text="Preview only. Sending to the panel is off in this build." Style="{StaticResource Dim}"
-                   FontSize="11" Foreground="{StaticResource TextFaint}" TextWrapping="Wrap" Margin="0,6,0,0" />
+        <Grid Margin="0,8,0,0">
+          <TextBlock x:Name="SendNote" Style="{StaticResource Dim}" FontSize="11" Foreground="{StaticResource TextFaint}"
+                     TextWrapping="Wrap" Margin="0,0,90,0" VerticalAlignment="Center" />
+          <Button x:Name="ConnectButton" Style="{StaticResource BaseButton}" Content="Connect" Padding="12,4" FontSize="11"
+                  HorizontalAlignment="Right" VerticalAlignment="Center" />
+        </Grid>
 
         <Grid Margin="0,34,0,10">
           <TextBlock Text="QUICK SCENES" Style="{StaticResource Caps}" />

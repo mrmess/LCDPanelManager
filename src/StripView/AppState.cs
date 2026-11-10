@@ -1,15 +1,19 @@
 using System.Collections.ObjectModel;
+using System.Windows;
 using System.Windows.Threading;
+using StripView.Controls;
 using StripView.Device;
 using StripView.Model;
 
 namespace StripView;
 
 /// <summary>Shared state for Home, Design and Diagnostics. One 1-second clock drives everything.</summary>
-public sealed class AppState
+public sealed class AppState : IDisposable
 {
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(1) };
     private int _seconds;
+    private DateTime _lastLivePush = DateTime.MinValue;
+    private DateTime _autoPushNotBefore = DateTime.MinValue;
 
     public TelemetrySource Telemetry { get; } = new();
     public StripLayout Layout { get; } = StripLayout.LoadOrDefault();
@@ -18,22 +22,32 @@ public sealed class AppState
     public PortInfo? Target { get; private set; }
     public bool StreamPaused { get; private set; }
     public int CadenceSeconds { get; private set; } = 2;
-    public double Brightness { get; set; } = 70;
+    public byte Brightness { get; set; } = PanelLink.DefaultBrightness;
     public DateTime? LastRendered { get; private set; }
     public string Status { get; private set; } = "Starting…";
+    public bool Connecting { get; private set; }
     public ObservableCollection<string> LogLines { get; } = new();
 
     /// <summary>Every second: fresh host telemetry.</summary>
     public event Action? TelemetryTick;
     /// <summary>Every cadence tick while the stream runs, and on Push once: re-render the strip.</summary>
     public event Action? StreamTick;
-    /// <summary>Devices, pause, cadence or status changed.</summary>
+    /// <summary>Devices, link, pause, cadence or status changed.</summary>
     public event Action? StateChanged;
 
     public AppState()
     {
         _timer.Tick += (_, _) => Tick();
+        Link.TxLockedOutRaised += () => Application.Current?.Dispatcher.BeginInvoke(() =>
+        {
+            Log("TX locked out (Device Error). Disconnect, then Connect again.");
+            SetStatus("TX locked out. Disconnect, then Connect again. Live sending stopped.");
+        });
     }
+
+    /// <summary>The Connect button is enabled only for a present, unrefused target and no open session.</summary>
+    public bool CanConnect => !Connecting && !Link.SessionOpen && PanelLink.RefusalFor(Target) is null;
+    public bool CanSend => Link.CanPush;
 
     public void Start()
     {
@@ -41,15 +55,34 @@ public sealed class AppState
         Rescan();
         _timer.Start();
         Render();
-        SetStatus("Preview only. Sending to the panel is off in this build.");
+        SetStatus(Target is null
+            ? $"{DeviceIdentity.StripName} not detected. Preview only."
+            : $"{DeviceIdentity.StripName} found on {Target.PortName}. Click Connect to send to the panel.");
     }
 
     private void Tick()
     {
         Telemetry.Sample();
         TelemetryTick?.Invoke();
+        var before = Link.State;
+        Link.Sync();
+        if (Link.State != before && Link.LastError is not null && Link.State == LinkState.Disconnected)
+        {
+            Log(Link.LastError);
+            SetStatus(Link.LastError);
+        }
         _seconds++;
         if (!StreamPaused && _seconds % CadenceSeconds == 0) Render();
+
+        // Live sending: same gate as the earlier app's poll timer.
+        var now = DateTime.UtcNow;
+        if (!StreamPaused && Link.CanPush && now >= _autoPushNotBefore &&
+            now - _lastLivePush >= TimeSpan.FromSeconds(CadenceSeconds))
+        {
+            _lastLivePush = now;
+            _ = SendFrameAsync(live: true);
+        }
+        StateChanged?.Invoke();
     }
 
     private void Render()
@@ -62,8 +95,10 @@ public sealed class AppState
     public void TogglePause()
     {
         StreamPaused = !StreamPaused;
-        Log(StreamPaused ? "Stream paused." : "Stream resumed.");
-        SetStatus(StreamPaused ? "Stream paused. The preview is frozen." : "Stream running. Preview refreshes every " + CadenceSeconds + " s.");
+        Log(StreamPaused ? "Stream paused. No live frames are sent." : "Stream resumed.");
+        SetStatus(StreamPaused
+            ? "Stream paused. The preview is frozen and nothing is sent."
+            : Link.CanPush ? $"Stream running. Sending every {CadenceSeconds} s." : $"Stream running. Preview refreshes every {CadenceSeconds} s.");
     }
 
     public void CycleCadence()
@@ -73,14 +108,88 @@ public sealed class AppState
         StateChanged?.Invoke();
     }
 
-    public void PushOnce()
+    public async Task ConnectAsync()
+    {
+        if (!CanConnect)
+        {
+            var why = PanelLink.RefusalFor(Target) ?? (Link.SessionOpen ? "Already connected." : "Busy.");
+            Log("Connect refused: " + why);
+            SetStatus(why);
+            return;
+        }
+        Connecting = true;
+        SetStatus($"Opening {Target!.PortName} and checking the panel is ready…");
+        Log($"Connect: opening {Target.PortName} ({Target.UsbId}) at {PanelLink.BaudRate} 8N1, then CF probe.");
+        try
+        {
+            var err = await Link.ConnectAsync(Target);
+            if (err is null)
+            {
+                Log($"Connected: {Link.PortName} ready. Keep-alive every {PanelLink.KeepAliveMs} ms.");
+                SetStatus($"Connected · {DeviceIdentity.StripName} on {Link.PortName} · ready.");
+            }
+            else
+            {
+                Log("Connect: " + err);
+                SetStatus(err);
+            }
+        }
+        finally
+        {
+            Connecting = false;
+            StateChanged?.Invoke();
+        }
+    }
+
+    public async Task DisconnectAsync()
+    {
+        SetStatus("Disconnecting…");
+        await Link.DisconnectAsync();
+        Log("Disconnected. Port closed.");
+        SetStatus("Disconnected. Port closed.");
+    }
+
+    public void PushOnce() => _ = SendFrameAsync(live: false);
+
+    /// <summary>Re-sends the current frame so the new brightness byte reaches the panel.</summary>
+    public void ApplyBrightness()
+    {
+        Log($"Brightness 0x{Brightness:X2}: applied with the next frame.");
+        _ = SendFrameAsync(live: false);
+    }
+
+    private async Task SendFrameAsync(bool live)
     {
         Render();
-        var frame = Controls.StripRenderer.RenderBgra(Layout, Telemetry);
-        Log($"Push once: rendered a {frame.Length:N0}-byte 440x1920 BGRA frame in memory.");
-        var r = Link.PushOnce(Target);
-        Log("Push once: " + r.Message);
-        SetStatus(r.Message);
+        var frame = StripRenderer.RenderBgra(Layout, Telemetry);
+        if (!Link.CanPush)
+        {
+            var why = Link.SessionOpen ? (Link.PushBusy ? "A send is already in progress." : "Panel not ready.") : "Not connected.";
+            if (!live)
+            {
+                Log($"Push once: rendered {frame.Length:N0}-byte frame, not sent. {why}");
+                SetStatus($"Frame rendered, not sent: {why}");
+            }
+            return;
+        }
+        if (!live) SetStatus($"Sending one frame to {Link.PortName}…");
+        StateChanged?.Invoke();
+        var r = await Link.PushFrameAsync(frame, Brightness);
+        if (!r.Sent)
+        {
+            _autoPushNotBefore = DateTime.UtcNow.AddSeconds(10);
+            Log((live ? "Live frame: " : "Push once: ") + r.Message);
+            SetStatus(r.Message);
+        }
+        else if (!live)
+        {
+            Log("Push once: " + r.Message);
+            SetStatus(r.Message);
+        }
+        else
+        {
+            SetStatus($"Live · last sent {Link.LastSent:HH:mm:ss} · {DeviceIdentity.StripName} on {Link.PortName}");
+        }
     }
 
     public void Rescan()
@@ -89,7 +198,7 @@ public sealed class AppState
         Target = PortScanner.SelectTarget(Ports);
         Log(Ports.Count == 0 ? "Port scan: no COM ports present." : $"Port scan: {Ports.Count} COM port(s).");
         foreach (var p in Ports) Log($"  {p.PortName}  {p.UsbId}  {p.Verdict}: {p.Reason}");
-        Log(Target is null ? $"No {DeviceIdentity.StripName} ({DeviceIdentity.StripId}) present." : $"Target: {Target.PortName}. No port opened.");
+        Log(Target is null ? $"No {DeviceIdentity.StripName} ({DeviceIdentity.StripId}) present." : $"Target: {Target.PortName}.");
         StateChanged?.Invoke();
     }
 
@@ -115,5 +224,11 @@ public sealed class AppState
         {
             Log("Could not save layout: " + ex.Message);
         }
+    }
+
+    public void Dispose()
+    {
+        _timer.Stop();
+        Link.Dispose();
     }
 }

@@ -67,11 +67,15 @@ public partial class DiagnosticsView : UserControl
         var rows = new (string, string)[]
         {
             ("Target", t is null ? "Not detected" : $"{t.PortName} · VID_{t.Vid}&PID_{t.Pid}"),
-            ("Port opened", _state.Link.IsOpen ? "Yes" : "No"),
-            ("COM writes", _state.Link.WritesAuthorized ? "Allowed" : "Off in this build (not authorized)"),
-            ("Stream", _state.StreamPaused ? "Paused" : $"Preview every {_state.CadenceSeconds} s"),
-            ("Last rendered", _state.LastRendered?.ToString("HH:mm:ss") ?? "—"),
-            ("Brightness", $"{_state.Brightness:0}% (local only)"),
+            ("Link", _state.Link.State.ToString()),
+            ("Port opened", _state.Link.IsOpen ? $"Yes · {_state.Link.PortName} · {PanelLink.BaudRate} 8N1" : "No"),
+            ("COM writes", _state.Link.WritesAuthorized ? "Authorized (locked target only)" : "Off"),
+            ("TX health", _state.Link.TxLockedOut ? "Locked out (Device Error)" : _state.Link.TxHealthy ? "Ready (CF probe passed)" : "Not probed"),
+            ("Keep-alive", _state.Link.CanPush ? $"CF every {PanelLink.KeepAliveMs} ms" : "Off"),
+            ("Stream", _state.StreamPaused ? "Paused (nothing sent)" : $"Every {_state.CadenceSeconds} s"),
+            ("Last sent", _state.Link.LastSent?.ToString("HH:mm:ss") ?? "—"),
+            ("Brightness", $"0x{_state.Brightness:X2} (default 0x{PanelLink.DefaultBrightness:X2})"),
+            ("Last error", _state.Link.LastError ?? "—"),
         };
         LinkGrid.Children.Clear();
         LinkGrid.RowDefinitions.Clear();
@@ -99,7 +103,7 @@ public partial class DiagnosticsView : UserControl
         SelfTestOut.Text =
             $"Keep-alive  {ka.Length} bytes: {Hex(ka, 8)} …\n" +
             $"Full frame  header {ff.Length} bytes: {Hex(ff, 8)} …\n" +
-            "Built in memory only. No port was opened.";
+            "Built in memory only. Nothing was written.";
         _state.Log("Built test frames in memory. Nothing sent.");
     }
 

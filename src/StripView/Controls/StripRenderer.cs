@@ -28,10 +28,11 @@ public static class StripRenderer
     /// <summary>BGRA bytes, row-major, 440*1920*4 = 3,379,200 bytes.</summary>
     public static byte[] RenderBgra(StripLayout layout, TelemetrySource telemetry)
     {
-        var bmp = Render(layout, telemetry);
-        var stride = (int)StripLayout.StripWidth * 4;
-        var bytes = new byte[stride * (int)StripLayout.StripHeight];
-        bmp.CopyPixels(bytes, stride, 0);
+        // Same conversion as the earlier app's StillThemeRenderer.ToBgraBytes.
+        var converted = new FormatConvertedBitmap(Render(layout, telemetry), PixelFormats.Bgra32, null, 0);
+        var stride = converted.PixelWidth * 4;
+        var bytes = new byte[stride * converted.PixelHeight];
+        converted.CopyPixels(bytes, stride, 0);
         return bytes;
     }
 

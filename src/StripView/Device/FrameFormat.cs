@@ -2,7 +2,7 @@ namespace StripView.Device;
 
 /// <summary>
 /// Panel wire format, carried over from the earlier offline app as constants and pure builders.
-/// Everything here works on byte arrays in memory; nothing opens a port.
+/// Everything here works on byte arrays in memory; SerialPanelClient does the I/O.
 /// Layout: [cmd][0xEF][0x69][u32 big-endian value][trailer][payload], padded to 250-byte buffers.
 /// </summary>
 public static class FrameFormat
@@ -40,6 +40,33 @@ public static class FrameFormat
         return buf;
     }
 
+    /// <summary>Same value as the earlier app's FullFrameValue11Pages: 440*1920*4.</summary>
+    public const uint FullFrameValue11Pages = FullFrameBytes;
+
+    /// <summary>
+    /// Full C8 wire stream: padded 250-byte header, then 250-byte buffers of 249 BGRA bytes + 1 zero pad.
+    /// Copied from the earlier app's BuildFullFrame.
+    /// </summary>
+    public static byte[] BuildFullFrame(ReadOnlySpan<byte> bgra440x1920)
+    {
+        if (bgra440x1920.Length != FullFrameBytes)
+            throw new ArgumentException($"Expected {FullFrameBytes} BGRA bytes.", nameof(bgra440x1920));
+
+        var stream = new byte[FullFrameWireBytes];
+        Build(CmdFullFrame, FullFrameBytes, 0).CopyTo(stream, 0);
+        var sourceOffset = 0;
+        var destinationOffset = BufferSize;
+        while (sourceOffset < bgra440x1920.Length)
+        {
+            var count = Math.Min(BulkDataBytes, bgra440x1920.Length - sourceOffset);
+            bgra440x1920.Slice(sourceOffset, count).CopyTo(stream.AsSpan(destinationOffset, count));
+            sourceOffset += count;
+            destinationOffset += BufferSize;
+        }
+        return stream;
+    }
+
+    public static byte[] BuildClose() => Build(CmdClose, 0, 0);
     public static byte[] BuildKeepAlive() => Build(CmdKeepAlive, 1, 0);
     public static byte[] BuildFullFrameHeader() => Build(CmdFullFrame, FullFrameBytes, 0);
 }
