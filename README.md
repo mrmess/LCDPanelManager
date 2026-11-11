@@ -1,16 +1,16 @@
-# StripView
+# LCD Panel Manager
 
 Offline WPF (.NET 8) companion for a USB case LCD strip. There is no network
 service or cloud dependency. Licensed under MIT; see `LICENSE` and
 `THIRD_PARTY.md`.
 
-The app icon (`src/StripView/assets/stripview.ico`) and the default Aurora
-background (`src/StripView/assets/abstract-aurora.png`) are original artwork
+The app icon (`src/LCDPanelManager/assets/lcdpanelmanager.ico`) and the default Aurora
+background (`src/LCDPanelManager/assets/abstract-aurora.png`) are original artwork
 for this project and are included under the same MIT license.
 
 ## Supported hardware
 
-StripView talks only to the panel below, and only after you click Connect.
+LCD Panel Manager talks only to the panel below, and only after you click Connect.
 
 | | |
 | --- | --- |
@@ -45,12 +45,12 @@ You need the .NET 8 SDK.
 - `build.cmd` publishes a self-contained win-x64 app to `publish\win-x64`.
   It uses `dotnet` from `PATH`, and falls back to `D:\Tools\dotnet\dotnet.exe`
   if that file exists and `dotnet` is not on `PATH`.
-- `run.cmd` starts `publish\win-x64\StripView.exe`. Running that exe directly
+- `run.cmd` starts `publish\win-x64\LCDPanelManager.exe`. Running that exe directly
   is the same app.
 - No installed .NET Desktop Runtime is required by the published app.
 - Administrator approval is required because LibreHardwareMonitor needs it
   for CPU temperature access on some systems (including Ryzen).
-- `StripView.exe --render-frame out.png` renders the saved scene at 440x1920
+- `LCDPanelManager.exe --render-frame out.png` renders the saved scene at 440x1920
   and exits without opening a serial port.
 
 See `CONTRIBUTING.md` for a short contributor guide.
@@ -62,8 +62,11 @@ sampling and panel updates keep running. The tray menu contains Open, Start
 minimized, Start with Windows, and Exit. Exit releases the panel back to its
 onboard default image, then quits.
 
-Both startup preferences are saved to `%LOCALAPPDATA%\StripView\preferences.json`.
-Start with Windows uses the current user's Run registry entry and still triggers
+Both startup preferences are saved to `%LOCALAPPDATA%\LCDPanelManager\preferences.json`.
+On first run, if that folder does not exist and `%LOCALAPPDATA%\StripView` does, the
+old folder is moved so existing layouts, preferences, and traces are kept.
+Start with Windows writes a current-user Run entry named `LCDPanelManager` and
+removes a leftover `StripView` entry if one is present. It still triggers
 the administrator prompt required for hardware temperature access.
 
 ## Panel updates
@@ -73,7 +76,7 @@ to `0x79` and is limited to `0x20`–`0xA0`.
 
 ## Layouts
 
-Layouts are saved to `%LOCALAPPDATA%\StripView\layout.json`.
+Layouts are saved to `%LOCALAPPDATA%\LCDPanelManager\layout.json`.
 
 - A readable saved layout is preserved, including its theme, widget positions,
   sizes, and text.

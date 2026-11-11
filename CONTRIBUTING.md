@@ -14,7 +14,7 @@ run.cmd
 self-contained and lands in `publish\win-x64`. The `publish\` folder is not
 committed.
 
-`StripView.exe --render-frame out.png` renders the saved scene at 440x1920 and
+`LCDPanelManager.exe --render-frame out.png` renders the saved scene at 440x1920 and
 exits without opening a serial port. The app requests administrator approval
 because LibreHardwareMonitor needs it for CPU temperature on some systems.
 

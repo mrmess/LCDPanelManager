@@ -10,4 +10,4 @@ if errorlevel 1 (
     exit /b 1
   )
 )
-"%DOTNET%" publish "%~dp0src\StripView\StripView.csproj" -c Release -r win-x64 --self-contained true -o "%~dp0publish\win-x64"
+"%DOTNET%" publish "%~dp0src\LCDPanelManager\LCDPanelManager.csproj" -c Release -r win-x64 --self-contained true -o "%~dp0publish\win-x64"

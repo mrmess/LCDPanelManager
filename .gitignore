@@ -424,6 +424,6 @@ FodyWeavers.xsd
 # Official VS Code C# Dev Kit Extension exclusion
 #*.lscache
 # ---------------------------------------------------------------------------
-# StripView
+# LCDPanelManager
 # ---------------------------------------------------------------------------
-src/StripView/assets/stripview-icon-oct30.ico
+src/LCDPanelManager/assets/lcdpanelmanager-icon-oct30.ico

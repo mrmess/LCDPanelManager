@@ -1,6 +1,6 @@
 # Third-party notices
 
-StripView itself is licensed under the MIT License (see `LICENSE`). It includes
+LCD Panel Manager itself is licensed under the MIT License (see `LICENSE`). It includes
 or depends on the software below. License names and copyright lines were taken
 from each project's public repository or package metadata.
 
@@ -10,7 +10,7 @@ from each project's public repository or package metadata.
 - Copyright: (C) Jason Curl, 2012-2021
 - License: Microsoft Public License (Ms-PL)
 - Source: https://github.com/jcurl/RJCP.DLL.SerialPortStream
-- In this tree: `src/StripView/lib/RJCP.SerialPortStream.dll`
+- In this tree: `src/LCDPanelManager/lib/RJCP.SerialPortStream.dll`
 
 The full license text is in `third_party/RJCP.SerialPortStream-MS-PL.txt`.
 
