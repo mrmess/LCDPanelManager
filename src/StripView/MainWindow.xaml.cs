@@ -1,17 +1,27 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using StripView.Device;
+using StripView.Model;
+using Forms = System.Windows.Forms;
+using Drawing = System.Drawing;
 
 namespace StripView;
 
 public partial class MainWindow : Window
 {
     private readonly AppState _state = new();
+    private readonly AppPreferences _preferences;
+    private Forms.NotifyIcon? _tray;
+    private Drawing.Icon? _trayIcon;
+
+    public bool StartHidden => _preferences.StartMinimized;
 
     public MainWindow()
     {
+        _preferences = AppPreferences.Load();
         InitializeComponent();
         HomePage.Attach(_state);
         DesignPage.Attach(_state);
@@ -24,13 +34,93 @@ public partial class MainWindow : Window
 
         _state.StateChanged += UpdateChrome;
         PreviewKeyDown += OnShortcut;
+        StateChanged += (_, _) =>
+        {
+            if (WindowState == WindowState.Minimized) HideToTray();
+        };
         Closing += (_, _) =>
         {
+            _preferences.Save();
             _state.SaveLayout();
             _state.Dispose();
+            if (_tray is not null) _tray.Visible = false;
+            _tray?.Dispose();
+            _trayIcon?.Dispose();
         };
+
+        InitializeTray();
+        if (_preferences.StartWithWindows)
+        {
+            try { WindowsStartup.Set(true); } catch (Exception ex) { _state.Log("Could not update startup registration: " + ex.Message); }
+        }
         _state.Start();
         UpdateChrome();
+    }
+
+    public void HideToTray()
+    {
+        ShowInTaskbar = false;
+        Hide();
+    }
+
+    private void RestoreFromTray()
+    {
+        ShowInTaskbar = true;
+        Show();
+        WindowState = WindowState.Normal;
+        Activate();
+    }
+
+    private void InitializeTray()
+    {
+        var menu = new Forms.ContextMenuStrip();
+        menu.Items.Add("Open Case LCD", null, (_, _) => RestoreFromTray());
+        menu.Items.Add(new Forms.ToolStripSeparator());
+
+        var minimized = new Forms.ToolStripMenuItem("Start minimized")
+        {
+            CheckOnClick = true,
+            Checked = _preferences.StartMinimized,
+        };
+        minimized.CheckedChanged += (_, _) =>
+        {
+            _preferences.StartMinimized = minimized.Checked;
+            _preferences.Save();
+        };
+        menu.Items.Add(minimized);
+
+        var startup = new Forms.ToolStripMenuItem("Start with Windows")
+        {
+            CheckOnClick = true,
+            Checked = _preferences.StartWithWindows,
+        };
+        startup.CheckedChanged += (_, _) =>
+        {
+            try
+            {
+                WindowsStartup.Set(startup.Checked);
+                _preferences.StartWithWindows = startup.Checked;
+                _preferences.Save();
+            }
+            catch (Exception ex)
+            {
+                startup.Checked = _preferences.StartWithWindows;
+                _state.Log("Could not update startup registration: " + ex.Message);
+            }
+        };
+        menu.Items.Add(startup);
+        menu.Items.Add(new Forms.ToolStripSeparator());
+        menu.Items.Add("Exit", null, (_, _) => Application.Current.Shutdown());
+
+        _trayIcon = Drawing.Icon.ExtractAssociatedIcon(Path.Combine(AppContext.BaseDirectory, "StripView.exe"));
+        _tray = new Forms.NotifyIcon
+        {
+            Text = "Case LCD",
+            Icon = _trayIcon ?? Drawing.SystemIcons.Application,
+            ContextMenuStrip = menu,
+            Visible = true,
+        };
+        _tray.DoubleClick += (_, _) => RestoreFromTray();
     }
 
     private void Show(UIElement page)

@@ -24,6 +24,14 @@ You need the .NET 8 SDK.
 
 See `CONTRIBUTING.md` for a short contributor guide.
 
+## Tray and startup
+
+The system-tray menu contains Open, Start minimized, Start with Windows, and Exit.
+Minimizing hides the window but leaves sensor sampling and panel updates running.
+Both startup preferences are saved to `%LOCALAPPDATA%\StripView\preferences.json`.
+Start with Windows uses the current user's Run registry entry and still triggers
+the administrator prompt required for hardware temperature access.
+
 ## Panel access
 
 The app opens and writes to the case LCD only after an explicit Connect. The

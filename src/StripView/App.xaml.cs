@@ -24,6 +24,8 @@ public partial class App : Application
             Shutdown(0);
             return;
         }
-        new MainWindow().Show();
+        var window = new MainWindow();
+        window.Show();
+        if (window.StartHidden) window.HideToTray();
     }
 }
