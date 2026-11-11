@@ -15,7 +15,7 @@ public partial class App : Application
         var i = Array.IndexOf(e.Args, "--render-frame");
         if (i >= 0)
         {
-            var path = i + 1 < e.Args.Length ? e.Args[i + 1] : "strip-frame.png";
+            var path = i + 1 < e.Args.Length ? e.Args[i + 1] : "panel-frame.png";
             var telemetry = new TelemetrySource();
             _ = Task.Run(() => telemetry.Sample()).GetAwaiter().GetResult();
             Thread.Sleep(600);

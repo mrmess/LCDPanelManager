@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Threading;
 using LCDPanelManager.Controls;
 using LCDPanelManager.Device;
@@ -51,6 +52,18 @@ public sealed class AppState : IDisposable
     /// <summary>The Connect button is enabled only for a present, unrefused target and no open session.</summary>
     public bool CanConnect => !Connecting && !Link.SessionOpen && PanelLink.RefusalFor(Target) is null;
     public bool CanSend => Link.CanPush;
+
+    public Task ToggleConnectAsync() => Link.SessionOpen ? DisconnectAsync() : ConnectAsync();
+
+    public void ApplyConnectButton(Button button)
+    {
+        var link = Link;
+        button.Content = link.SessionOpen ? "Disconnect" : Connecting ? "Connecting…" : "Connect";
+        button.IsEnabled = link.SessionOpen ? !link.PushBusy : CanConnect;
+        button.ToolTip = link.SessionOpen
+            ? "Close the port."
+            : PanelLink.RefusalFor(Target) ?? "Open the case LCD and check it is ready.";
+    }
 
     public void Start()
     {

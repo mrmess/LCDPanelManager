@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -139,7 +138,7 @@ public partial class MainWindow : Window
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Exit", null, (_, _) => ExitApp());
 
-        _trayIcon = Drawing.Icon.ExtractAssociatedIcon(Path.Combine(AppContext.BaseDirectory, "LCDPanelManager.exe"));
+        _trayIcon = Drawing.Icon.ExtractAssociatedIcon(AppPaths.Executable);
         _tray = new Forms.NotifyIcon
         {
             Text = "LCD Panel Manager",

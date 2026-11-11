@@ -48,6 +48,10 @@ You need the .NET 8 SDK.
 - `run.cmd` starts `publish\win-x64\LCDPanelManager.exe`. Running that exe directly
   is the same app.
 - No installed .NET Desktop Runtime is required by the published app.
+- To run the published app on another Windows 10/11 x64 PC, copy the `publish\win-x64`
+  folder and start `LCDPanelManager.exe`. Settings and layouts stay in
+  `%LOCALAPPDATA%\LCDPanelManager`, so the folder can be moved. There is no installer.
+  Start with Windows records the current path of the exe in the current-user Run key.
 - Administrator approval is required because LibreHardwareMonitor needs it
   for CPU temperature access on some systems (including Ryzen).
 - `LCDPanelManager.exe --render-frame out.png` renders the saved scene at 440x1920

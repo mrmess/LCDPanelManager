@@ -41,8 +41,7 @@ public static class WindowsStartup
         key.DeleteValue(LegacyValueName, throwOnMissingValue: false);
         if (enabled)
         {
-            var exe = Path.Combine(AppContext.BaseDirectory, "LCDPanelManager.exe");
-            key.SetValue(ValueName, $"\"{exe}\"");
+            key.SetValue(ValueName, $"\"{AppPaths.Executable}\"");
         }
         else
         {

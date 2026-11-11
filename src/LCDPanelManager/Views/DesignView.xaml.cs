@@ -79,11 +79,7 @@ public partial class DesignView : UserControl
             UpdateBrightnessLabel();
         };
         ApplyBrightnessButton.Click += (_, _) => state.ApplyBrightness();
-        ConnectButton.Click += async (_, _) =>
-        {
-            if (state.Link.SessionOpen) await state.DisconnectAsync();
-            else await state.ConnectAsync();
-        };
+        ConnectButton.Click += async (_, _) => await state.ToggleConnectAsync();
         SendButton.Click += (_, _) => state.PushOnce();
         LiveToggle.Checked += (_, _) => { if (state.StreamPaused) state.TogglePause(); };
         LiveToggle.Unchecked += (_, _) => { if (!state.StreamPaused) state.TogglePause(); };
@@ -290,9 +286,7 @@ public partial class DesignView : UserControl
         DeviceState.Text = link.PushBusy ? "Sending" : link.CanPush ? "Live" : link.SessionOpen ? "Connected · not ready"
             : _state.Connecting ? "Connecting" : t is null ? "Not detected" : "Detected · not connected";
         var brush = (Brush)FindResource(link.TxHealthy ? "Ok" : t is null || link.TxLockedOut ? "Bad" : "Warn");
-        ConnectButton.Content = link.SessionOpen ? "Disconnect" : _state.Connecting ? "Connecting…" : "Connect";
-        ConnectButton.IsEnabled = link.SessionOpen ? !link.PushBusy : _state.CanConnect;
-        ConnectButton.ToolTip = link.SessionOpen ? "Close the port." : PanelLink.RefusalFor(t) ?? "Open the case LCD and check it is ready.";
+        _state.ApplyConnectButton(ConnectButton);
         SendButton.IsEnabled = _state.CanSend;
         ApplyBrightnessButton.IsEnabled = _state.CanSend;
         if (link.LastSent is { } sent)

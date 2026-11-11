@@ -25,7 +25,7 @@ public partial class DiagnosticsView : UserControl
 
         LockRules.Text =
             $"Send target: {DeviceIdentity.StripName}, USB {DeviceIdentity.StripId}, normally {DeviceIdentity.ExpectedPort}. " +
-            "Matched by USB ID first; COM3 is preferred when several match.\n" +
+            "Matched by USB ID first; " + DeviceIdentity.ExpectedPort + " is preferred when several match.\n" +
             $"Refused: {DeviceIdentity.RefusedName}, USB {DeviceIdentity.RefusedId}, and anything on {DeviceIdentity.RefusedPort}, whatever it reports.\n" +
             "Any other port is listed for information and never offered.";
 

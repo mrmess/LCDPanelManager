@@ -25,11 +25,7 @@ public partial class HomeView : UserControl
         Strip.Attach(state.Layout, state.Telemetry);
         PauseButton.Click += (_, _) => state.TogglePause();
         PushButton.Click += (_, _) => state.PushOnce();
-        ConnectButton.Click += async (_, _) =>
-        {
-            if (state.Link.SessionOpen) await state.DisconnectAsync();
-            else await state.ConnectAsync();
-        };
+        ConnectButton.Click += async (_, _) => await state.ToggleConnectAsync();
         CadenceButton.Click += (_, _) => state.CycleCadence();
         ViewAllButton.Click += (_, _) => RequestDesign?.Invoke();
 
@@ -48,14 +44,12 @@ public partial class HomeView : UserControl
         CadenceButton.Content = $"Every {_state.CadenceSeconds} seconds";
         PanelPort.Text = _state.Link.SessionOpen ? _state.Link.PortName : _state.Target?.PortName ?? "NOT DETECTED";
         var link = _state.Link;
-        ConnectButton.Content = link.SessionOpen ? "Disconnect" : _state.Connecting ? "Connecting…" : "Connect";
-        ConnectButton.IsEnabled = link.SessionOpen ? !link.PushBusy : _state.CanConnect;
-        ConnectButton.ToolTip = link.SessionOpen ? "Close the port." : PanelLink.RefusalFor(_state.Target) ?? "Open the case LCD and check it is ready.";
+        _state.ApplyConnectButton(ConnectButton);
         PushButton.IsEnabled = _state.CanSend;
         SendNote.Text = link.PushBusy ? "Sending…"
             : link.CanPush ? (_state.StreamPaused ? "Connected. Paused: nothing is sent." : $"Connected. Sending every {_state.CadenceSeconds} s.")
             : link.SessionOpen ? "Connected, panel not ready."
-            : _state.Target is null ? "Case LCD not detected. Preview only." : "Not connected. Preview only.";
+            : _state.Target is null ? $"{DeviceIdentity.StripName} not detected. Preview only." : "Not connected. Preview only.";
     }
 
     private void RefreshScene()

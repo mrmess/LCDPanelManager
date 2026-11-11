@@ -8,8 +8,8 @@
     <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>LCDPanelManager</RootNamespace>
     <AssemblyName>LCDPanelManager</AssemblyName>
-    <Product>LCDPanelManager</Product>
-    <AssemblyTitle>LCDPanelManager</AssemblyTitle>
+    <Product>LCD Panel Manager</Product>
+    <AssemblyTitle>LCD Panel Manager</AssemblyTitle>
     <Description>Offline companion for a 440x1920 USB case LCD strip. No network.</Description>
     <Authors>Donald Duck</Authors>
     <Copyright>Copyright (c) 2026 Donald Duck</Copyright>

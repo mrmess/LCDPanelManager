@@ -61,7 +61,7 @@
       <DockPanel>
         <Grid DockPanel.Dock="Top">
           <TextBlock Text="PANEL 01" Style="{StaticResource Caps}" />
-          <TextBlock x:Name="PanelPort" Text="COM3" Style="{StaticResource Caps}" HorizontalAlignment="Right" />
+          <TextBlock x:Name="PanelPort" Text="NOT DETECTED" Style="{StaticResource Caps}" HorizontalAlignment="Right" />
         </Grid>
         <StackPanel DockPanel.Dock="Bottom" Margin="0,14,0,0">
           <TextBlock Text="Actual output · 440 × 1920" HorizontalAlignment="Center" FontSize="12" />
