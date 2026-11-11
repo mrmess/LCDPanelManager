@@ -1,0 +1,68 @@
+name: Build
+
+on:
+  push:
+    branches: [main, master]
+    tags: [v*]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Publish win-x64
+        run: dotnet publish src/LCDPanelManager/LCDPanelManager.csproj -c Release -r win-x64 --self-contained true -o publish/win-x64
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: LCDPanelManager-win-x64
+          path: publish/win-x64
+
+      - name: Pack release zip
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $name = "LCDPanelManager-${{ github.ref_name }}-win-x64"
+          New-Item -ItemType Directory -Path $name | Out-Null
+          Copy-Item -Path "publish\win-x64\*" -Destination $name -Recurse
+          Compress-Archive -Path $name -DestinationPath "$name.zip"
+
+      - name: Upload release zip
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: LCDPanelManager-${{ github.ref_name }}-win-x64-zip
+          path: LCDPanelManager-${{ github.ref_name }}-win-x64.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download zip
+        uses: actions/download-artifact@v4
+        with:
+          name: LCDPanelManager-${{ github.ref_name }}-win-x64-zip
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          gh release create "${{ github.ref_name }}"
+          "LCDPanelManager-${{ github.ref_name }}-win-x64.zip"
+          --repo "${{ github.repository }}"
+          --title "LCD Panel Manager ${{ github.ref_name }}"
+          --generate-notes

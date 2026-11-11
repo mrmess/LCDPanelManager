@@ -59,6 +59,24 @@ You need the .NET 8 SDK.
 
 See `CONTRIBUTING.md` for a short contributor guide.
 
+## GitHub Actions and releases
+
+Every push and pull request runs a GitHub Actions workflow that publishes the
+self-contained win-x64 app and uploads it as a build artifact. You can download
+that zip from the Actions run; you do not need this PC to build a release.
+
+To cut a release, tag a version and push the tag to GitHub (the `v` prefix
+matters):
+
+    git tag v0.1.0
+    git push github v0.1.0
+
+The same workflow then zips `publish\win-x64` into
+`LCDPanelManager-v0.1.0-win-x64.zip` and attaches it to a GitHub Release.
+Bump the `<Version>` in `src/LCDPanelManager/LCDPanelManager.csproj` to
+match the tag before you tag it.
+
+
 ## Tray and startup
 
 The close button (X) and Minimize hide the window to the system tray; sensor
