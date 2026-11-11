@@ -171,8 +171,8 @@ public sealed class AppState : IDisposable
     {
         SetStatus("Disconnecting…");
         await Link.DisconnectAsync();
-        Log("Disconnected. Port closed.");
-        SetStatus("Disconnected. Port closed.");
+        Log("Disconnected. Panel released to its default image, port closed.");
+        SetStatus("Disconnected. Panel returned to its default image.");
     }
 
     public void PushOnce() => _ = SendFrameAsync(live: false);

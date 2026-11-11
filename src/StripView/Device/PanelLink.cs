@@ -175,13 +175,13 @@ public sealed class PanelLink : IDisposable
         }
     }
 
-    /// <summary>Same as the earlier app: cancel any push, hard-close with a 2 s ceiling.</summary>
+    /// <summary>Cancel any push, flush the panel back to its onboard default image, then close the port (2 s ceiling).</summary>
     public async Task DisconnectAsync()
     {
         try { _pushCts?.Cancel(); } catch { /* ignore */ }
         var closeTask = Task.Run(() =>
         {
-            try { _client.RecoverAfterWriteFailure(); }
+            try { _client.Disconnect(); }
             catch { try { _client.Close(); } catch { /* ignore */ } }
         });
         var finished = await Task.WhenAny(closeTask, Task.Delay(2000));
@@ -240,11 +240,11 @@ public sealed class PanelLink : IDisposable
         }
     }
 
-    /// <summary>App exit: same as the earlier app's OnClosed.</summary>
+    /// <summary>App exit: flush the panel back to its onboard default image, then close the port.</summary>
     public void Dispose()
     {
         try { _pushCts?.Cancel(); } catch { /* ignore */ }
-        try { _client.RecoverAfterWriteFailure(); } catch { _client.Dispose(); }
+        try { _client.Disconnect(); } catch { _client.Dispose(); }
     }
 
     private string Fail(string message)

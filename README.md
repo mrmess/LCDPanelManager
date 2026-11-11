@@ -26,8 +26,9 @@ See `CONTRIBUTING.md` for a short contributor guide.
 
 ## Tray and startup
 
-The system-tray menu contains Open, Start minimized, Start with Windows, and Exit.
-Minimizing hides the window but leaves sensor sampling and panel updates running.
+The close button (X) and Minimize hide the window to the system tray; sensor sampling and panel updates keep running.
+The tray menu contains Open, Start minimized, Start with Windows, and Exit.
+Exit releases the panel back to its onboard default image, then quits.
 Both startup preferences are saved to `%LOCALAPPDATA%\StripView\preferences.json`.
 Start with Windows uses the current user's Run registry entry and still triggers
 the administrator prompt required for hardware temperature access.

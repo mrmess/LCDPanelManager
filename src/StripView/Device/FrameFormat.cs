@@ -14,7 +14,8 @@ public static class FrameFormat
     public const byte CmdFullFrame = 0xC8;     // full 440x1920 BGRA frame
     public const byte CmdPartialUpdate = 0xCC; // live/partial update
     public const byte CmdKeepAlive = 0xCF;     // value=1, about every 1.3 s
-    public const byte CmdClose = 0xCA;
+    public const byte CmdFlush = 0x87;         // end host session; panel returns to onboard default image
+    public const byte CmdClose = 0xCA;         // static close crumb; not used on the live disconnect path
 
     public const int Width = 440;
     public const int Height = 1920;
@@ -65,6 +66,7 @@ public static class FrameFormat
         return stream;
     }
 
+    public static byte[] BuildFlush() => Build(CmdFlush, 1, 0);
     public static byte[] BuildClose() => Build(CmdClose, 0, 0);
     public static byte[] BuildKeepAlive() => Build(CmdKeepAlive, 1, 0);
     public static byte[] BuildFullFrameHeader() => Build(CmdFullFrame, FullFrameBytes, 0);

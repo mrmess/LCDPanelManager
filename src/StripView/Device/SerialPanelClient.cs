@@ -961,7 +961,8 @@ public sealed class SerialPanelClient : IDisposable
     public void Disconnect()
     {
         StopKeepAlive();
-        // If TX already locked out, do NOT send 0xCA - that hammers a hung CDC.
+        // 0x87 ends the host session so the panel returns to its onboard default image.
+        // Skip it when TX is locked out - a write would only hammer a hung CDC.
         if (!TxLockedOut)
         {
             SerialPortStream? port;
@@ -972,7 +973,7 @@ public sealed class SerialPanelClient : IDisposable
                 {
                     var prev = port.WriteTimeout;
                     try { port.WriteTimeout = 800; } catch { /* ignore */ }
-                    try { WriteExact(FrameFormat.BuildClose(), CancellationToken.None); } catch { /* ignore */ }
+                    try { WriteExact(FrameFormat.BuildFlush(), CancellationToken.None); } catch { /* ignore */ }
                     try { port.WriteTimeout = prev; } catch { /* ignore */ }
                 }
                 catch { /* ignore */ }

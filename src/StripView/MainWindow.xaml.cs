@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -16,6 +17,7 @@ public partial class MainWindow : Window
     private readonly AppPreferences _preferences;
     private Forms.NotifyIcon? _tray;
     private Drawing.Icon? _trayIcon;
+    private bool _exiting;
 
     public bool StartHidden => _preferences.StartMinimized;
 
@@ -38,14 +40,10 @@ public partial class MainWindow : Window
         {
             if (WindowState == WindowState.Minimized) HideToTray();
         };
-        Closing += (_, _) =>
+        Closing += OnClosing;
+        Application.Current.SessionEnding += (_, _) =>
         {
-            _preferences.Save();
-            _state.SaveLayout();
-            _state.Dispose();
-            if (_tray is not null) _tray.Visible = false;
-            _tray?.Dispose();
-            _trayIcon?.Dispose();
+            _exiting = true;
         };
 
         InitializeTray();
@@ -61,6 +59,29 @@ public partial class MainWindow : Window
     {
         ShowInTaskbar = false;
         Hide();
+    }
+
+    private void ExitApp()
+    {
+        _exiting = true;
+        Close();
+    }
+
+    private void OnClosing(object? sender, CancelEventArgs e)
+    {
+        if (!_exiting)
+        {
+            e.Cancel = true;
+            HideToTray();
+            return;
+        }
+
+        _preferences.Save();
+        _state.SaveLayout();
+        _state.Dispose();
+        if (_tray is not null) _tray.Visible = false;
+        _tray?.Dispose();
+        _trayIcon?.Dispose();
     }
 
     private void RestoreFromTray()
@@ -110,7 +131,7 @@ public partial class MainWindow : Window
         };
         menu.Items.Add(startup);
         menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add("Exit", null, (_, _) => Application.Current.Shutdown());
+        menu.Items.Add("Exit", null, (_, _) => ExitApp());
 
         _trayIcon = Drawing.Icon.ExtractAssociatedIcon(Path.Combine(AppContext.BaseDirectory, "StripView.exe"));
         _tray = new Forms.NotifyIcon
