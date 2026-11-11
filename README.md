@@ -1,12 +1,42 @@
 # StripView
 
-Offline WPF (.NET 8) companion for a 440x1920 USB case LCD strip. There is no
-network service or cloud dependency. Licensed under MIT; see `LICENSE` and
+Offline WPF (.NET 8) companion for a USB case LCD strip. There is no network
+service or cloud dependency. Licensed under MIT; see `LICENSE` and
 `THIRD_PARTY.md`.
 
 The app icon (`src/StripView/assets/stripview.ico`) and the default Aurora
 background (`src/StripView/assets/abstract-aurora.png`) are original artwork
 for this project and are included under the same MIT license.
+
+## Supported hardware
+
+StripView talks only to the panel below, and only after you click Connect.
+
+| | |
+| --- | --- |
+| Name (in the app) | Case LCD strip |
+| USB vendor/product ID | `VID_0525&PID_A4A7` |
+| USB product string | Gadget Serial v2.4 |
+| Windows device name | USB Serial Device (often COM3) |
+| Resolution | 440 x 1920 |
+| Interface | USB CDC (`usbser`) |
+
+If more than one matching device is present, COM3 is preferred. Close other
+case-LCD or panel applications before connecting.
+
+The USB descriptor does not report a retail model name or a stable serial
+number. Identification is by the vendor/product ID above.
+
+### Refused device
+
+A different USB screen on the same machine must never be opened:
+
+| | |
+| --- | --- |
+| Name | TComas LG600 screen |
+| USB vendor/product ID | `VID_1A86&PID_CA11` |
+| Example serial | `CT13INCH` (one unit) |
+| Windows device name | USB Serial Device (often COM4) |
 
 ## Build and run
 
@@ -15,7 +45,8 @@ You need the .NET 8 SDK.
 - `build.cmd` publishes a self-contained win-x64 app to `publish\win-x64`.
   It uses `dotnet` from `PATH`, and falls back to `D:\Tools\dotnet\dotnet.exe`
   if that file exists and `dotnet` is not on `PATH`.
-- `run.cmd` starts `publish\win-x64\StripView.exe`.
+- `run.cmd` starts `publish\win-x64\StripView.exe`. Running that exe directly
+  is the same app.
 - No installed .NET Desktop Runtime is required by the published app.
 - Administrator approval is required because LibreHardwareMonitor needs it
   for CPU temperature access on some systems (including Ryzen).
@@ -26,20 +57,16 @@ See `CONTRIBUTING.md` for a short contributor guide.
 
 ## Tray and startup
 
-The close button (X) and Minimize hide the window to the system tray; sensor sampling and panel updates keep running.
-The tray menu contains Open, Start minimized, Start with Windows, and Exit.
-Exit releases the panel back to its onboard default image, then quits.
+The close button (X) and Minimize hide the window to the system tray; sensor
+sampling and panel updates keep running. The tray menu contains Open, Start
+minimized, Start with Windows, and Exit. Exit releases the panel back to its
+onboard default image, then quits.
+
 Both startup preferences are saved to `%LOCALAPPDATA%\StripView\preferences.json`.
 Start with Windows uses the current user's Run registry entry and still triggers
 the administrator prompt required for hardware temperature access.
 
-## Panel access
-
-The app opens and writes to the case LCD only after an explicit Connect. The
-send target is a USB serial device with `VID_0525` and `PID_A4A7` (often COM3).
-If more than one matching device is present, COM3 is preferred. A device with
-`VID_1A86` and `PID_CA11` (a TComas LG600 screen, often COM4) is always
-refused. Close other case-LCD or panel applications before connecting.
+## Panel updates
 
 It supports Push once and recurring full-frame C8 updates. Brightness defaults
 to `0x79` and is limited to `0x20`–`0xA0`.
